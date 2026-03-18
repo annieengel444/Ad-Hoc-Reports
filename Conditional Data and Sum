@@ -1,0 +1,60 @@
+
+library(readxl)
+library(dplyr)
+library(magrittr)
+library(writexl)
+
+paa <- read_excel (
+  "paa.xlsx",
+  sheet = 1
+)
+ura <- read_excel (
+  "URA.xlsx",
+  sheet = 1
+)
+
+paasum <- paa %>%
+  group_by(CASE_EXTID) %>%
+  summarise(
+    both_sum = sum(rowSums(across(c(PAA_PRNPL_AMT, PAA_INT_AMT)), na.rm = TRUE)),
+    .groups = "drop"
+  )
+
+urasum <- ura %>%
+  group_by(CASE_EXTID) %>%
+  summarise(
+    urasum = sum((UAP_BAL_AMT), na.rm = TRUE),
+    .groups = "drop"
+  )
+
+paafilter <- paasum %>%
+  filter(both_sum > 0)
+
+paajoin <- paasum %>%
+  left_join(paa, by = "CASE_EXTID")
+
+paaura <- paajoin %>%
+  left_join(ura, by = "CASE_EXTID")
+
+alljoin <- paaura %>%
+  left_join(urasum, by = "CASE_EXTID")
+
+finalreportfiltered <- alljoin %>%
+  filter(both_sum > urasum)
+
+finalreportselected <- finalreportfiltered %>%
+  select(CASE_EXTID, LGCY_CASE_NBR, SRL_NUM_TXT, UAP_BAL_AMT, both_sum, both_sum, urasum)
+
+polished <- finalreportselected %>%
+  mutate("Data Extraction Date" = Sys.Date()) %>%
+  rename(
+    "Case ID" = `CASE_EXTID`,
+    "Legacy Case Number" = `LGCY_CASE_NBR`,
+    "Grant Number" = `SRL_NUM_TXT`,
+    "Grant Amount" = `UAP_BAL_AMT`,
+    "PAA Total" = `both_sum`,
+    "Grant Total" = `urasum`
+  )
+
+
+write_xlsx(polished, "PAA on Assistance Cases March 2026 SR71395.xlsx")
