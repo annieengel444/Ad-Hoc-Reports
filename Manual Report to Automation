@@ -1,0 +1,279 @@
+
+library(readxl)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(stringr)
+library(utils)
+library(tibble)
+library(writexl)
+library(tidyr)
+##WORKLOAD MANAGEMENT
+code1 <- read_excel (
+  "code1.xlsx",
+  sheet = 1
+)
+code2 <- read_excel (
+  "code2.xlsx",
+  sheet = 1
+)
+code3 <- read_excel (
+  "code3.xlsx",
+  sheet = 1
+)
+code4 <- read_excel (
+  "code4.xlsx",
+  sheet = 1
+)
+code5 <- read_excel (
+  "code5.xlsx",
+  sheet = 1
+)
+code6 <- read_excel (
+  "code6.xlsx",
+  sheet = 1
+)
+code7 <- read_excel (
+  "code7.xlsx",
+  sheet = 1
+)
+code8 <- read_excel (
+  "code8.xlsx",
+  sheet = 1
+)
+
+code9 <- read_excel (
+  "code9.xlsx",
+  sheet = 1
+)
+code10 <- read_excel (
+  "code10.xlsx",
+  sheet = 1
+)
+code11 <- read_excel (
+  "code11.xlsx",
+  sheet = 1
+)
+code12 <- read_excel (
+  "code12.xlsx",
+  sheet = 1
+)
+code13 <- read_excel (
+  "code13.xlsx",
+  sheet = 1
+)
+code14 <- read_excel (
+  "code14.xlsx",
+  sheet = 1
+)
+names <- read.csv (
+  "masternames.csv"
+)
+##creating counts for all varibles in the BI report
+code1count <- code1 %>%
+  count(worker = code1$"Completed/Deleted By", name = "Total Tasks Completed")
+
+code2count <- code2 %>%
+  count(worker = code2$"Completed/Deleted By", name = "Total Tasks Completed On or Before Due Date")
+
+code3count <- code3 %>%
+  count(worker = code3$"Completed/Deleted By", name = "All Other Tasks Overdue Completed")
+
+code4count <- code4 %>%
+  count(worker = code4$"Completed/Deleted By", name = "All Other Tasks Overdue Completed")
+
+code5count <- code5 %>%
+  count(worker = code5$"Completed/Deleted By", name = "Out of Compliance Tasks - Extended Overdue Completed")
+
+code6count <- code6 %>%
+  count(worker = code6$"Row Creat User", name = "Total Cases Worked")
+
+code7count <- code7 %>%
+  count(worker = code7$"Row Creat User", name = "Total Participants Worked")
+
+code8count <- code8 %>%
+  count(worker = code8$"Created By", name = "Total Activity Log")
+
+code9count <- code9 %>%
+  count(worker = code9$"Created By", name = "Interview")
+
+code10count <- code10 %>%
+  count(worker = code10$"Created By", name = "Email")
+
+code11count <- code11 %>%
+  count(worker = code11$"Created By", name = "Phone Call")
+
+code12count <- code12 %>%
+  count(worker = code12$"Created By", name = "Miscellaneous")
+
+code13count <- code13 %>%
+  count(worker = code13$"Created By", name = "Fax")
+
+code14count <- code14 %>%
+  count(worker = code14$"Created By", name = "Mail")
+#joining all DF created to the master file of names
+step1 <- names %>%
+  left_join(code1count, by = "worker")
+step2 <- step1 %>%
+  left_join(code2count, by = "worker")
+step3 <- step2 %>%
+  left_join(code3count, by = "worker")
+step4 <- step3 %>%
+  left_join(code4count, by = "worker")
+step5 <- step4 %>%
+  left_join(code5count, by = "worker")
+step6 <- step5 %>%
+  left_join(code6count, by = "worker")
+step7 <- step6 %>%
+  left_join(code7count, by = "worker")
+step8 <- step7 %>%
+  left_join(code8count, by = "worker")
+step9 <- step8 %>%
+  left_join(code9count, by = "worker")
+step10 <- step9 %>%
+  left_join(code10count, by = "worker")
+step11 <- step10 %>%
+  left_join(code11count, by = "worker")
+step12 <- step11 %>%
+  left_join(code12count, by = "worker")
+step13 <- step12 %>%
+  left_join(code13count, by = "worker")
+finaljoinstep <- step13 %>%
+  left_join(code14count, by = "worker")
+
+mat <- finaljoinstep %>%
+  column_to_rownames(var = "worker") %>%
+  as.matrix()
+
+mat <- as.data.frame(t(mat))
+
+write_xlsx(mat, "Workload Management Report 3.3.26.xlsx")
+
+##LEIN- final is called df_widelein
+lien <- read_excel (
+  "lien.xlsx",
+  sheet = 1
+)
+
+namessc <- names %>%
+  filter(worker != "Field")
+
+namesfield <- names %>%
+  filter(worker == "Field")
+
+namesclac <- names %>%
+  filter(worker == "Clackamas DA")
+
+liensc <- lien %>%
+ filter(Team == "Special Collections")
+
+lienfield <- lien %>%
+  filter(Team == "Field")
+
+sccount<- liensc %>%
+  count(worker = USERNAME, group = NOTE_TYPE_CD)
+
+fieldcount <- lienfield %>%
+  count(worker = Team, group = NOTE_TYPE_CD)
+
+namessc <- names %>%
+  filter(worker != "Field")
+
+namesfield <- names %>%
+  filter(worker == "Field")
+
+finalcountsc <- namessc %>%
+  left_join (sccount, by = "worker")
+
+finalcountfield <- namesfield %>%
+  left_join (fieldcount, by = "worker")
+
+liencounts <- union(finalcountsc, finalcountfield)
+
+df_widelein <- liencounts %>%
+  pivot_wider (
+    names_from = group,
+    values_from = n,
+    values_fill = 0
+  ) %>%
+  arrange(worker)
+
+#Garnishments
+garn <- read_excel (
+  "garn.xlsx",
+  sheet = 1
+)
+othergroupmaster <- read_excel (
+  "garnothermaster.xlsx",
+  sheet = 1
+)
+##Other Group special collections and clackamas- final is called df_wideother
+othergroupsc <- garn %>%
+  filter(`Other Groups` != "None") %>%
+  filter(Team == "Special Collections")
+othergroupcountsc <- othergroupsc %>%
+  count(worker = worker, group = `Other Groups`)
+othergroupcl <- garn %>%
+  filter(`Other Groups` != "None") %>%
+  filter(Team == "Clackamas DA")
+othergroupcountcl <- othergroupcl %>%
+  count(worker = Team, group = `Other Groups`)
+Garnothersheet <- union(othergroupcountcl, othergroupcountsc)
+garnishments <- othergroupmaster %>%
+  left_join (Garnothersheet, by = "group")
+
+df_wideother <- garnishments %>%
+  pivot_wider (
+    names_from = group,
+    values_from = n,
+    values_fill = 0
+    ) %>%
+  arrange(worker) %>%
+  mutate(Total = rowSums(across(-worker), na.rm = FALSE))
+
+
+##insurance only special collections- final is called insurancecountfinal
+insurancegroup<- garn %>%
+  filter(!is.na(`Insurance Name`))
+insurancecountsc <- insurancegroup %>%
+  count(worker = worker, name = "Insurance Company")
+insurancecountfinal <- names %>%
+  left_join(insurancecountsc, by = "worker")
+
+#Bank group special collections and clackamas- final is called df_widebank
+banksc <- garn %>%
+  filter(`Bank Group` != "None") %>%
+  filter(Team == "Special Collections")
+bankclack <- garn %>%
+  filter(`Bank Group` != "None") %>%
+  filter(Team == "Clackamas DA")
+bankcountsc <- banksc %>%
+  count(worker = worker, group = `Bank Group`)
+bankcountclack <- bankclack %>%
+  count(worker = Team, group = `Bank Group`)
+
+bankscandclack <- union(bankcountsc, bankcountclack)
+
+allbanks <- names %>%
+  left_join(bankscandclack, by = "worker")
+
+df_widebank <- allbanks %>%
+  pivot_wider (
+    names_from = group,
+    values_from = n,
+    values_fill = 0
+  ) %>%
+  arrange(worker) %>%
+  mutate(Total = rowSums(across(-worker), na.rm = FALSE))
+
+
+write_xlsx(
+  list(
+    Workload = mat,
+    Liens = df_widelein,
+    GarnOther = df_wideother,
+    GarnInsurance = insurancecountfinal,
+    GarnBank = df_widebank
+  ),
+  path = "Special Collections Monthly Report March 2026.xlsx"
+)
