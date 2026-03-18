@@ -1,0 +1,76 @@
+
+library(readxl)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(stringr)
+
+fulldata <- read_excel (
+  "ivedata.xlsx",
+  sheet = 1
+)
+
+charging <- read_excel (
+  "currentcharging.xlsx",
+  sheet = 1
+)
+
+arrears <- read_excel (
+  "arrears.xlsx",
+  sheet = 1
+)
+
+foster <- read_excel (
+  "pwrsfostercare.xlsx",
+  sheet = 1
+)
+
+datawithcharge <- fulldata %>%
+  left_join(charging, by = "CASE_EXTID")
+
+finalreport <- datawithcharge %>%
+  left_join(arrears, by = "CASE_EXTID")
+
+finalreportfoster <- foster %>%
+  inner_join(finalreport, by = "CASE_EXTID")
+
+charge2 <- read_excel (
+  "charging2.xlsx",
+  sheet = 1
+)
+
+finalreportfoster2 <- finalreportfoster %>%
+  left_join(charge2, by = "CASE_EXTID")
+
+
+write.csv(finalreportfoster2, "final_output4.csv", row.names = FALSE)
+
+
+final <- read_excel (
+  "final.xlsx",
+  sheet = 1
+)
+
+obligation <- read_excel (
+  "obligation.xlsx",
+  sheet = 1
+)
+
+finalreportobligation <- final %>%
+  left_join(obligation, by = "CASE_EXTID")
+
+
+
+write.csv(finalreportobligation, "final_output5.csv", row.names = FALSE)
+
+ive <- read_excel (
+  "ive.xlsx",
+  sheet = 1
+)
+
+finalcleandates <- ive %>%
+  group_by(prtcpid) %>%
+  slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
+  ungroup() ##sorting by case id and only selecting the max date
+
+write.csv(finalcleandates, "final_output5.csv", row.names = FALSE)
