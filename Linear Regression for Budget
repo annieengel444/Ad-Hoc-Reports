@@ -1,0 +1,64 @@
+
+library(readxl)
+library(dplyr)
+library(magrittr)
+
+
+df <- data.frame(
+  year   = 2020:2025,
+  amount = c(114, 385, 64, 21, 238, 24177) ##values changed for security reasons
+)
+
+
+df$t <- df$year - min(df$year)
+df$t2 <- df$t^2
+
+
+
+m_lin <- lm(amount ~ t, data = df)
+summary(m_lin)
+
+future <- data.frame(
+  year = 2026:2027,
+  t    = (2026:2027) - min(df$year)
+)
+pred_lin <- predict(m_lin, newdata = future)
+
+
+lin_forecast <- data.frame(year = future$year,
+                           forecast_linear = round(pred_lin))
+lin_forecast
+
+
+m_poly <- lm(amount ~ t + t2, data = df)
+summary(m_poly)
+
+
+future$t  <- future$year - min(df$year)
+future$t2 <- future$t^2
+
+pred_poly <- predict(m_poly, newdata = future)
+
+poly_forecast <- data.frame(year = future$year,
+                            forecast_poly = round(pred_poly))
+poly_forecast
+
+
+library(ggplot2)
+
+
+plot_df <- rbind(
+  data.frame(year = df$year, value = df$amount, series = "Historical"),
+  data.frame(year = lin_forecast$year, value = lin_forecast$forecast_linear, series = "Linear Forecast"),
+  data.frame(year = poly_forecast$year, value = poly_forecast$forecast_poly, series = "Polynomial Forecast")
+)
+
+ggplot(plot_df, aes(x = year, y = value, color = series)) +
+  geom_point(linewidth = 2) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Forecast: Linear vs Polynomial (Degree 2)",
+       x = "Year", y = "Amount",
+       color = "Series") +
+  theme_minimal()
+
