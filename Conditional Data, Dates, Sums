@@ -1,0 +1,50 @@
+
+library(readxl)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(stringr)
+# library(ggthemes)
+
+suspended <- read_excel (
+  "suspended.xlsx",
+  sheet = 1
+)
+
+payment <- read_excel (
+  "payments.xlsx",
+  sheet = 1
+)
+
+suspended <- suspended %>%
+  group_by(CASE_EXTID) %>%
+  slice_min(order_by = ISS_DT, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+joined <- suspended %>%
+  left_join(payment, by = "CASE_EXTID")
+##Removing cases where the payments are recieved after the earliest/ min license suspension date
+filterdates <- joined %>%
+  group_by(CASE_EXTID) %>%
+  filter(min(ISS_DT) < EFF_TRANS_TS, na.rm = TRUE) %>%
+  ungroup()
+##Adding columns for payment counts received and sum of payments collected
+sumandcount <- filterdates %>%
+  group_by(CASE_EXTID) %>%
+  summarise(
+    TRANS_AMTcount = sum(!is.na(TRANS_AMT)),
+    trans_amt_sum_per_case = sum(TRANS_AMT, na.rm = TRUE),
+    .groups = "drop"
+  )
+##final join to add the cleaned data with the sum and count of payments
+finaljoin <- filterdates %>%
+  left_join(sumandcount, by = "CASE_EXTID")
+##ensure more 1 payment has been received
+reportlicensesuspension <- finaljoin %>%
+  group_by(CASE_EXTID) %>%
+  filter(TRANS_AMTcount > 1) %>%
+  ungroup()
+
+  write.csv(reportlicensesuspension, "License Suspension Report.csv", row.names = FALSE)
+
+
